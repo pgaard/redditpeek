@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"e:/Programming/browser extensions/redditpeek\" init)"
+    ]
+  }
+}
