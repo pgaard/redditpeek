@@ -3,6 +3,12 @@
   const SHORTLINK_HOST_RE = /^redd\.it$/i;
   const POST_PATH_RE = /\/comments\/[a-z0-9]+/i;
 
+  let enabled = true;
+  chrome.storage.sync.get({ enabled: true }, (s) => { enabled = !!s.enabled; });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.enabled) enabled = !!changes.enabled.newValue;
+  });
+
   function isInterceptableRedditUrl(href) {
     try {
       const u = new URL(href, location.href);
@@ -24,6 +30,7 @@
   }
 
   document.addEventListener("click", (e) => {
+    if (!enabled) return;
     if (e.defaultPrevented) return;
     if (e.button !== 0) return;
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;

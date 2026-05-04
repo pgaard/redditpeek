@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>RedditPeek Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>RedditPeek</h1>
+    <p class="subtitle">Preview Reddit posts in a popup instead of navigating to them.</p>
+
+    <section class="setting">
+      <label class="toggle">
+        <input type="checkbox" id="enabled" />
+        <span class="toggle-label">Enable RedditPeek</span>
+      </label>
+      <p class="hint">When off, Reddit links navigate normally. The extension stays installed.</p>
+    </section>
+
+    <p class="status" id="status" aria-live="polite"></p>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

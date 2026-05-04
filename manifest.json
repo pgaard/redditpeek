@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "RedditPeek",
+  "name": "Reddit Peek",
   "version": "0.1.0",
-  "description": "Preview Reddit posts in a popup instead of navigating to them.",
-  "permissions": ["scripting"],
+  "description": "Reddit is too distracting. This extension previews reddit links in a popup instead of going to reddit.",  "permissions": ["scripting", "storage"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "host_permissions": [
     "*://*.reddit.com/*",
     "*://redd.it/*"
