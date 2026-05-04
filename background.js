@@ -1,6 +1,28 @@
 const REDDIT_HOST_RE = /^(?:[a-z0-9-]+\.)?reddit\.com$/i;
 const SHORTLINK_HOST_RE = /^redd\.it$/i;
 
+let blockReddit = false;
+chrome.storage.sync.get({ blockReddit: false }, (s) => { blockReddit = !!s.blockReddit; });
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.blockReddit) blockReddit = !!changes.blockReddit.newValue;
+});
+
+function isRedditNavigation(url) {
+  try {
+    const u = new URL(url);
+    return REDDIT_HOST_RE.test(u.hostname) || SHORTLINK_HOST_RE.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  if (!blockReddit) return;
+  if (details.frameId !== 0) return;
+  if (!isRedditNavigation(details.url)) return;
+  chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL("blocked.html") });
+});
+
 function normalizeToJsonUrl(rawUrl) {
   const u = new URL(rawUrl);
   if (SHORTLINK_HOST_RE.test(u.hostname)) {

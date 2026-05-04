@@ -4,9 +4,15 @@
   const POST_PATH_RE = /\/comments\/[a-z0-9]+/i;
 
   let enabled = true;
-  chrome.storage.sync.get({ enabled: true }, (s) => { enabled = !!s.enabled; });
+  let blockReddit = false;
+  chrome.storage.sync.get({ enabled: true, blockReddit: false }, (s) => {
+    enabled = !!s.enabled;
+    blockReddit = !!s.blockReddit;
+  });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync" && changes.enabled) enabled = !!changes.enabled.newValue;
+    if (area !== "sync") return;
+    if (changes.enabled) enabled = !!changes.enabled.newValue;
+    if (changes.blockReddit) blockReddit = !!changes.blockReddit.newValue;
   });
 
   function isInterceptableRedditUrl(href) {
@@ -194,7 +200,7 @@
       body.appendChild(empty);
     }
 
-    if (post.permalink) {
+    if (post.permalink && !blockReddit) {
       const perma = document.createElement("a");
       perma.href = post.permalink;
       perma.className = "redditpeek-permalink redditpeek-chrome";
