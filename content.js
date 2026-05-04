@@ -5,14 +5,17 @@
 
   let enabled = true;
   let blockReddit = false;
-  chrome.storage.sync.get({ enabled: true, blockReddit: false }, (s) => {
+  let showComments = false;
+  chrome.storage.sync.get({ enabled: true, blockReddit: false, showComments: false }, (s) => {
     enabled = !!s.enabled;
     blockReddit = !!s.blockReddit;
+    showComments = !!s.showComments;
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "sync") return;
     if (changes.enabled) enabled = !!changes.enabled.newValue;
     if (changes.blockReddit) blockReddit = !!changes.blockReddit.newValue;
+    if (changes.showComments) showComments = !!changes.showComments.newValue;
   });
 
   function isInterceptableRedditUrl(href) {
@@ -81,7 +84,7 @@
     document.addEventListener("keydown", onKeydown, true);
     document.body.appendChild(modalEl);
 
-    chrome.runtime.sendMessage({ type: "REDDITPEEK_FETCH", url }, (resp) => {
+    chrome.runtime.sendMessage({ type: "REDDITPEEK_FETCH", url, withComments: showComments }, (resp) => {
       if (!modalEl) return;
       const body = modalEl.querySelector(".redditpeek-body");
       if (chrome.runtime.lastError) {
@@ -92,7 +95,7 @@
         renderError(body, resp?.error ?? "Unknown error", url);
         return;
       }
-      renderPost(body, resp.post);
+      renderPost(body, resp.post, resp.comments ?? []);
     });
   }
 
@@ -150,7 +153,32 @@
     body.append(p, a);
   }
 
-  function renderPost(body, post) {
+  function renderComments(body, comments) {
+    if (!comments.length) return;
+    const wrap = document.createElement("div");
+    wrap.className = "redditpeek-comments";
+    const heading = document.createElement("h3");
+    heading.className = "redditpeek-comments-heading";
+    heading.textContent = "Top comments";
+    wrap.appendChild(heading);
+    for (const c of comments) {
+      const item = document.createElement("div");
+      item.className = "redditpeek-comment";
+      const meta = document.createElement("div");
+      meta.className = "redditpeek-comment-meta";
+      meta.textContent = `u/${c.author} • ${c.score} pts`;
+      item.appendChild(meta);
+      for (const para of c.body.split(/\n{2,}/)) {
+        const p = document.createElement("p");
+        appendLinkified(p, para);
+        item.appendChild(p);
+      }
+      wrap.appendChild(item);
+    }
+    body.appendChild(wrap);
+  }
+
+  function renderPost(body, post, comments) {
     body.innerHTML = "";
 
     const meta = document.createElement("div");
@@ -199,6 +227,8 @@
       empty.textContent = "(no body)";
       body.appendChild(empty);
     }
+
+    if (comments?.length) renderComments(body, comments);
 
     if (post.permalink && !blockReddit) {
       const perma = document.createElement("a");

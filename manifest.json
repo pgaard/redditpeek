@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Reddit Peek",
   "version": "0.1.0",
-  "description": "Reddit is too distracting. This extension previews reddit links in a popup instead of going to reddit. You can also optionally block reddit entirely.",
+  "description": "Reddit is too distracting. This extension previews reddit links in a popup instead of going to reddit. You can also optionally view top comments or block reddit entirely.",
   "permissions": ["scripting", "storage", "webNavigation", "tabs"],
   "web_accessible_resources": [
     {

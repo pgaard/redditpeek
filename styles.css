@@ -75,6 +75,45 @@
   font-style: italic;
 }
 
+.redditpeek-comments {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e4e4e4;
+}
+
+.redditpeek-comments-heading {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7c7c83;
+  margin: 0 0 10px;
+}
+
+.redditpeek-comment {
+  padding: 10px 0;
+  border-top: 1px solid #f0f0f0;
+}
+.redditpeek-comment:first-of-type { border-top: 0; }
+
+.redditpeek-comment-meta {
+  font-size: 12px;
+  color: #7c7c83;
+  margin-bottom: 4px;
+}
+
+.redditpeek-comment p {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+@media (prefers-color-scheme: dark) {
+  .redditpeek-comments { border-top-color: #2c2c2d; }
+  .redditpeek-comment { border-top-color: #2c2c2d; }
+  .redditpeek-comment-meta { color: #818384; }
+}
+
 .redditpeek-permalink {
   display: inline-block;
   margin-top: 8px;

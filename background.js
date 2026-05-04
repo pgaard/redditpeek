@@ -23,17 +23,20 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL("blocked.html") });
 });
 
-function normalizeToJsonUrl(rawUrl) {
+function normalizeToJsonUrl(rawUrl, withComments) {
   const u = new URL(rawUrl);
+  let path;
   if (SHORTLINK_HOST_RE.test(u.hostname)) {
-    return `https://www.reddit.com${u.pathname}.json`;
+    path = u.pathname;
+  } else if (REDDIT_HOST_RE.test(u.hostname)) {
+    path = u.pathname.replace(/\/+$/, "");
+    if (!/\/comments\//.test(path)) return null;
+  } else {
+    return null;
   }
-  if (!REDDIT_HOST_RE.test(u.hostname)) return null;
-
-  let path = u.pathname.replace(/\/+$/, "");
-  if (!/\/comments\//.test(path)) return null;
   if (!path.endsWith(".json")) path += ".json";
-  return `https://www.reddit.com${path}`;
+  const query = withComments ? "?sort=top&limit=3" : "?limit=1";
+  return `https://www.reddit.com${path}${query}`;
 }
 
 function extractPost(json) {
@@ -53,11 +56,31 @@ function extractPost(json) {
   };
 }
 
+function extractTopComments(json, n) {
+  if (!Array.isArray(json) || json.length < 2) return [];
+  const children = json[1]?.data?.children ?? [];
+  const out = [];
+  for (const c of children) {
+    if (out.length >= n) break;
+    if (c?.kind !== "t1") continue;
+    const d = c.data;
+    if (!d || d.stickied) continue;
+    if (typeof d.body !== "string" || !d.body.trim()) continue;
+    out.push({
+      author: d.author ?? "",
+      body: d.body,
+      score: d.score ?? 0
+    });
+  }
+  return out;
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type !== "REDDITPEEK_FETCH") return;
   (async () => {
     try {
-      const jsonUrl = normalizeToJsonUrl(msg.url);
+      const withComments = !!msg.withComments;
+      const jsonUrl = normalizeToJsonUrl(msg.url, withComments);
       if (!jsonUrl) {
         sendResponse({ ok: false, error: "Not a recognized Reddit post URL." });
         return;
@@ -76,7 +99,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: false, error: "Could not parse post." });
         return;
       }
-      sendResponse({ ok: true, post });
+      const comments = withComments ? extractTopComments(data, 3) : [];
+      sendResponse({ ok: true, post, comments });
     } catch (err) {
       sendResponse({ ok: false, error: String(err?.message ?? err) });
     }

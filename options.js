@@ -1,7 +1,8 @@
-const DEFAULTS = { enabled: true, blockReddit: false };
+const DEFAULTS = { enabled: true, blockReddit: false, showComments: false };
 
 const enabledEl = document.getElementById("enabled");
 const blockEl = document.getElementById("blockReddit");
+const commentsEl = document.getElementById("showComments");
 const statusEl = document.getElementById("status");
 
 let statusTimer = null;
@@ -15,6 +16,7 @@ async function load() {
   const stored = await chrome.storage.sync.get(DEFAULTS);
   enabledEl.checked = !!stored.enabled;
   blockEl.checked = !!stored.blockReddit;
+  commentsEl.checked = !!stored.showComments;
 }
 
 enabledEl.addEventListener("change", async () => {
@@ -25,6 +27,11 @@ enabledEl.addEventListener("change", async () => {
 blockEl.addEventListener("change", async () => {
   await chrome.storage.sync.set({ blockReddit: blockEl.checked });
   flashStatus(blockEl.checked ? "Blocking Reddit" : "Reddit allowed");
+});
+
+commentsEl.addEventListener("change", async () => {
+  await chrome.storage.sync.set({ showComments: commentsEl.checked });
+  flashStatus(commentsEl.checked ? "Comments on" : "Comments off");
 });
 
 load();
