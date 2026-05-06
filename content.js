@@ -1,7 +1,7 @@
 (() => {
   const REDDIT_HOST_RE = /(^|\.)reddit\.com$/i;
   const SHORTLINK_HOST_RE = /^redd\.it$/i;
-  const POST_PATH_RE = /\/comments\/[a-z0-9]+/i;
+  const POST_PATH_RE = /\/comments\/[a-z0-9]+|\/r\/[^/]+\/s\/[a-z0-9]+/i;
 
   let enabled = true;
   let blockReddit = false;
@@ -18,14 +18,15 @@
     if (changes.showComments) showComments = !!changes.showComments.newValue;
   });
 
-  function isInterceptableRedditUrl(href) {
+  function classifyRedditUrl(href) {
     try {
       const u = new URL(href, location.href);
-      if (SHORTLINK_HOST_RE.test(u.hostname)) return true;
-      if (REDDIT_HOST_RE.test(u.hostname) && POST_PATH_RE.test(u.pathname)) return true;
-      return false;
+      if (SHORTLINK_HOST_RE.test(u.hostname)) return "post";
+      if (!REDDIT_HOST_RE.test(u.hostname)) return null;
+      if (POST_PATH_RE.test(u.pathname)) return "post";
+      return "listing";
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -47,11 +48,13 @@
     const a = findAnchor(e.target);
     if (!a) return;
     if (a.closest(".redditpeek-chrome")) return;
-    if (!isInterceptableRedditUrl(a.href)) return;
+    const kind = classifyRedditUrl(a.href);
+    if (!kind) return;
 
     e.preventDefault();
     e.stopPropagation();
-    openPeek(a.href);
+    if (kind === "listing") openListingNotice(a.href);
+    else openPeek(a.href);
   }, true);
 
   let modalEl = null;
@@ -68,14 +71,14 @@
     if (e.key === "Escape") closeModal();
   }
 
-  function openPeek(url) {
+  function openModalShell(initialBodyHtml) {
     closeModal();
     modalEl = document.createElement("div");
     modalEl.className = "redditpeek-overlay";
     modalEl.innerHTML = `
       <div class="redditpeek-modal" role="dialog" aria-modal="true">
         <button class="redditpeek-close redditpeek-chrome" aria-label="Close">&times;</button>
-        <div class="redditpeek-body"><div class="redditpeek-loading">Loading…</div></div>
+        <div class="redditpeek-body">${initialBodyHtml}</div>
       </div>`;
     modalEl.addEventListener("click", (e) => {
       if (e.target === modalEl) closeModal();
@@ -83,6 +86,31 @@
     modalEl.querySelector(".redditpeek-close").addEventListener("click", closeModal);
     document.addEventListener("keydown", onKeydown, true);
     document.body.appendChild(modalEl);
+    return modalEl.querySelector(".redditpeek-body");
+  }
+
+  function openListingNotice(url) {
+    const body = openModalShell("");
+    const h = document.createElement("h2");
+    h.className = "redditpeek-title";
+    h.textContent = "This is a Reddit listing page";
+    const p = document.createElement("p");
+    p.className = "redditpeek-empty";
+    p.textContent = "RedditPeek only previews individual posts, not feeds or subreddit pages.";
+    body.append(h, p);
+    if (!blockReddit) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.className = "redditpeek-permalink redditpeek-chrome";
+      a.textContent = "Open on Reddit anyway";
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      body.appendChild(a);
+    }
+  }
+
+  function openPeek(url) {
+    const body = openModalShell('<div class="redditpeek-loading">Loading…</div>');
 
     chrome.runtime.sendMessage({ type: "REDDITPEEK_FETCH", url, withComments: showComments }, (resp) => {
       if (!modalEl) return;
